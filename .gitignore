@@ -1,0 +1,13 @@
+.DS_Store
+.env*
+
+*.mp3
+mp3/*.mp3
+mp4/*.mp4
+img/*.png
+img/*.jpg
+img/*.jpeg
+img/covers/*
+
+client_secrets.json
+__pycache__
