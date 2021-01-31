@@ -6,14 +6,14 @@ By running this script you can:
 - upload video to youtube in proper playlist, using youtube API
 - prepare HTML text for post on a site
 
-You can use ./release -h to get help.
+You can use `./release -h` to get help.
 
 Example:
-`./release.py -i img/test.jpeg -m 'mp3/be0.mp3' -t 'telecom №96. Лист и фекотист' -d description.html`
+```./release.py -i img/test.jpeg -m 'mp3/be0.mp3' -t 'telecom №96. Лист и фекотист' -d description.html```
 
-You are recommended to put episode mp3 to `mp3/` directory and image to `img/`.
-Generated covers will be saved in `img/covers`.
-Rendered video will be saved in `mp4/`.
+You are recommended to put episode mp3 to `mp3/` directory and image to `img/`. 
+Generated covers will be saved in `img/covers`. 
+Rendered video will be saved in `mp4/`. 
 
 `img/` direcory aslo contains default templates for cover and default images in case there is nor image file provided.
 
