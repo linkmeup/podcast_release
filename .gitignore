@@ -7,7 +7,9 @@ mp4/*.mp4
 img/*.png
 img/*.jpg
 img/*.jpeg
-img/covers/*
+img/covers/*.png
+img/covers/*.jpg
+img/covers/*.jpeg
 
 client_secrets.json
 __pycache__
