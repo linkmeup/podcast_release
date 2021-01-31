@@ -1,1 +1,1 @@
-Put mp3-files here if you want.
+Put episode image files here if you want.

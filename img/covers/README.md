@@ -1,1 +1,1 @@
-Generated covers will be saved in `covers`
+Generated covers will be saved here.
