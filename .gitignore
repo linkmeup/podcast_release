@@ -11,5 +11,7 @@ img/covers/*.png
 img/covers/*.jpg
 img/covers/*.jpeg
 
+description.html
+
 client_secrets.json
 __pycache__
