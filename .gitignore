@@ -1,5 +1,6 @@
 .DS_Store
 .env*
+poetry.lock
 
 *.mp3
 mp3/*.mp3

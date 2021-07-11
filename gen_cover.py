@@ -1,14 +1,13 @@
 from PIL import Image, ImageDraw, ImageFont
-import os
 
-FONT = 'Lato-Bold.ttf'
+FONT = "Lato-Bold.ttf"
 
 
 def add_corners(im, rad):
-    circle = Image.new('L', (rad * 2, rad * 2), 0)
+    circle = Image.new("L", (rad * 2, rad * 2), 0)
     draw = ImageDraw.Draw(circle)
     draw.ellipse((0, 0, rad * 2, rad * 2), fill=255)
-    alpha = Image.new('L', im.size, 255)
+    alpha = Image.new("L", im.size, 255)
     w, h = im.size
     alpha.paste(circle.crop((0, 0, rad, rad)), (0, 0))
     alpha.paste(circle.crop((0, rad, rad, rad * 2)), (0, h - rad))
@@ -19,22 +18,22 @@ def add_corners(im, rad):
 
 
 def split_text(text: str) -> str:
-    words = text.replace('_', ' ').split()
+    words = text.replace("_", " ").split()
     if len(text) < 50:
         letters = 17
     elif len(text) < 80:
         letters = 21
     else:
         letters = 26
-    text_splitted = ''
-    row = ''
+    text_splitted = ""
+    row = ""
     for word in words:
-        if len(row+word)+1 <= letters: 
-            row += f'{word} '
-            text_splitted += f'{word} '
+        if len(row + word) + 1 <= letters:
+            row += f"{word} "
+            text_splitted += f"{word} "
         else:
-            row += f'\n{word} '
-            text_splitted += f'\n{word} '
+            row += f"\n{word} "
+            text_splitted += f"\n{word} "
             row = word
 
     return text_splitted
@@ -56,10 +55,10 @@ def prepare_img(img):
     width, height = img.size
     if width <= height:
         width_new = 480
-        height_new = int(480/width*height)
-    else: 
+        height_new = int(480 / width * height)
+    else:
         height_new = 550
-        width_new = int(550/height*width)
+        width_new = int(550 / height * width)
 
     img = img.resize((width_new, height_new), Image.ANTIALIAS)
     img = img.crop((0, 0, 480, 550))
@@ -70,18 +69,18 @@ def prepare_img(img):
 
 def prepare_rss_cover(podcast) -> str:
 
-    img = Image.open(podcast.cover).convert('RGBA')
+    img = Image.open(podcast.cover).convert("RGBA")
 
     width, height = img.size
     width_new = 1400
-    height_new = int(1400/width*height)
+    height_new = int(1400 / width * height)
 
     img = img.resize((width_new, height_new), Image.ANTIALIAS)
 
-    bottom = Image.open(f'img/defaults/background.png')
+    bottom = Image.open("img/defaults/background.png")
     bottom.paste(img, (0, 300))
 
-    rss_cover_name = f'img/covers/{podcast.filename_pattern}_rss_cover.png'
+    rss_cover_name = f"img/covers/{podcast.filename}_rss_cover.png"
     bottom.save(rss_cover_name)
 
     return rss_cover_name
@@ -89,15 +88,21 @@ def prepare_rss_cover(podcast) -> str:
 
 def prepare_vk_cover(podcast) -> str:
 
-    img = Image.open(podcast.img).convert('RGBA')
+    img = Image.open(podcast.img).convert("RGBA")
 
     width, height = img.size
-    width_new = 1400
-    height_new = int(1400/width*height)
+
+    if width <= height:
+        width_new = 1400
+        height_new = int(1400 / width * height)
+    else:
+        height_new = 1400
+        width_new = int(1400 / height * width)
 
     img = img.resize((width_new, height_new), Image.ANTIALIAS)
+    img = img.crop((0, 0, 1400, 1400))
 
-    vk_cover_name = f'img/covers/{podcast.filename_pattern}_vk_cover.png'
+    vk_cover_name = f"img/covers/{podcast.filename}_vk_cover.png"
     img.save(vk_cover_name)
 
     return vk_cover_name
@@ -105,18 +110,18 @@ def prepare_vk_cover(podcast) -> str:
 
 def gen_cover(podcast) -> str:
 
-    img = prepare_img(Image.open(podcast.img)).convert('RGBA')
+    img = prepare_img(Image.open(podcast.img)).convert("RGBA")
 
     r, g, b, a = img.split()
-    top = Image.merge('RGB', (r, g, b))
-    mask = Image.merge('L', (a,))
+    top = Image.merge("RGB", (r, g, b))
+    mask = Image.merge("L", (a,))
 
-    bottom = Image.open(f'img/defaults/{podcast.feed}.jpg')
-    bottom.paste(top, (44,83), mask)
+    bottom = Image.open(f"img/defaults/{podcast.feed}.jpg")
+    bottom.paste(top, (44, 83), mask)
 
     add_text(bottom, podcast.title)
 
-    cover_name = f'img/covers/{podcast.filename_pattern}_cover.png'
+    cover_name = f"img/covers/{podcast.filename}_cover.png"
     bottom.save(cover_name)
-    
+
     return cover_name

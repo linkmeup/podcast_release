@@ -1,26 +1,28 @@
 #!/usr/bin/env python3
 from html.parser import HTMLParser
 import os
+import re
 import shutil
 import argparse
 import decouple
 import logging
 
+from publish_post import publish_post
+
 import logger
 from gen_cover import gen_cover, prepare_rss_cover, prepare_vk_cover
-from yt import upload_video, update_playlist
 from render_video import render_video
 from fs import copy_file
 
 screen_width, _ = shutil.get_terminal_size()
 screen_width -= 1
 
-FS = 'fs.linkmeup.ru'
-FS_PATH = decouple.config('FS_PATH')
+FS = "fs.linkmeup.ru"
+FS_PATH = decouple.config("FS_PATH")
 
-PODTRAC_BASE = 'https://dts.podtrac.com/redirect.mp3'
+PODTRAC_BASE = "https://dts.podtrac.com/redirect.mp3"
 
-FEEDS  = {
+FEEDS = {
     "LTE": "lte",
     "telecom": "telecom",
     "sysadmins": "sysadmin",
@@ -37,75 +39,98 @@ FEEDS  = {
 
 
 class HTMLFilter(HTMLParser):
-    text = ''
+    text = ""
+
     def handle_data(self, data):
         self.text += data
 
 
-class Podcast():
+def excerpt(text):
+    f = HTMLFilter()
+    f.feed(text)
+    return f.text
+
+
+def format_output(text: str, value: str) -> str:
+    return f'{text + ":": <20}{value}\n'
+
+
+class Podcast:
     def __init__(self, title, description, mp3, img=None):
         self.title = title
         self.description = description
-        self.feed = self.get_feed()
-        
-        self.filename_pattern = mp3.split('/')[-1].split('.')[0]
-        self.mp3 = mp3
+        self.excerpt = excerpt(self.description)
+        self.body = self.site_body
 
-        self.mp3_filename = f'{self.filename_pattern}.mp3'
+        self.feed = self.get_feed()
+        self.episode_number = self.get_number()
+
+        self.filename = f"{self.feed}-V{self.episode_number}"
+
+        self.mp3 = mp3
+        self.mp3_filename = f"{self.filename}.mp3"
 
         if img:
             self.img = img
         else:
-            self.img = f'img/defaults/{podcast.feed}_img.png'
-        
-        if not os.path.exists(self.img):
-            raise ValueError(f'Файл {self.img} не существует')
+            self.img = f"img/defaults/{self.feed}_img.png"
 
-        img_extension = img.split('.')[-1]
-        self.img_filename = f'{self.filename_pattern}.{img_extension}'
+        if not os.path.exists(self.img):
+            raise ValueError(f"Файл {self.img} не существует")
+
+        img_extension = img.split(".")[-1]
+        self.img_filename = f"{self.filename}.{img_extension}"
 
     def get_feed(self) -> str:
         first_word = self.title.split()[0]
-        return FEEDS[first_word] if FEEDS[first_word] else 'other'
+        return FEEDS[first_word] if FEEDS[first_word] else "other"
+
+    def get_number(self) -> str:
+        regexp = r"\S+ № ?(?P<number>\d+)\..*"
+        result = re.search(regexp, self.title)
+        return result.group("number")
 
     def create_covers(self):
         self.cover = gen_cover(self)
-        self.cover_filename = self.cover.split('/')[-1]
+        self.cover_filename = self.cover.split("/")[-1]
 
         self.rss_cover = prepare_rss_cover(self)
-        self.rss_cover_filename = self.rss_cover.split('/')[-1]
+        self.rss_cover_filename = self.rss_cover.split("/")[-1]
 
         self.vk_cover = prepare_vk_cover(self)
-        self.vk_cover_filename = self.vk_cover.split('/')[-1]
-
+        self.vk_cover_filename = self.vk_cover.split("/")[-1]
 
     def mp3_upload(self):
         os.chmod(self.mp3, 0o644)
-        file_path = f'podcasts/{self.feed}/{self.mp3_filename}'
-        full_path = f'{FS_PATH}/{file_path}'
+        file_path = f"podcasts/{self.feed}/{self.mp3_filename}"
+        full_path = f"{FS_PATH}/{file_path}"
         copy_file(self.mp3, full_path)
-        self.podtrac_url = f'{PODTRAC_BASE}/{FS}/{file_path}'
+        self.podtrac_url = f"{PODTRAC_BASE}/{FS}/{file_path}"
 
     def img_upload(self):
         os.chmod(self.img, 0o644)
-        file_path = f'images/{self.img_filename}'
-        full_path = f'{FS_PATH}/{file_path}'
+        file_path = f"images/podcasts/{self.feed}/{self.img_filename}"
+        full_path = f"{FS_PATH}/{file_path}"
         copy_file(self.img, full_path)
-        self.img_url = f'https://{FS}/{file_path}'
+        self.img_url = f"https://{FS}/{file_path}"
 
     def cover_upload(self):
         os.chmod(self.cover, 0o644)
-        file_path = f'images/{self.cover_filename}'
-        full_path = f'{FS_PATH}/{file_path}'
+        file_path = f"images/podcasts/{self.feed}/{self.cover_filename}"
+        full_path = f"{FS_PATH}/{file_path}"
         copy_file(self.cover, full_path)
-        self.cover_url = f'https://{FS}/{file_path}'
+        self.cover_url = f"https://{FS}/{file_path}"
 
     def rss_cover_upload(self):
         os.chmod(self.rss_cover, 0o644)
-        file_path = f'images/{self.rss_cover_filename}'
-        full_path = f'{FS_PATH}/{file_path}'
+        file_path = f"images/podcasts/{self.feed}/{self.rss_cover_filename}"
+        full_path = f"{FS_PATH}/{file_path}"
         copy_file(self.rss_cover, full_path)
-        self.rss_cover_url = f'https://{FS}/{file_path}'
+        self.rss_cover_url = f"https://{FS}/{file_path}"
+
+    def publish_to_site(self):
+        self.post_url = publish_post(self)
+        self.description += f"\n{self.post_url}"
 
     def render(self):
         self.mp4 = render_video(self)
@@ -113,82 +138,42 @@ class Podcast():
     def yt_upload(self):
         self.yt_id = upload_video(self)
         update_playlist(self)
-        self.yt_url = f'https://www.youtube.com/watch?v={self.yt_id}'
+        self.yt_url = f"https://www.youtube.com/watch?v={self.yt_id}"
 
     @property
     def nice_view(self) -> str:
 
-        output = '=' * screen_width
-        output += format_output(' title', self.title)
-        output += format_output('feed', self.feed)
-        output += format_output('mp3', self.mp3)
-        output += format_output('mp3_file', self.mp3_filename)
+        output = "=" * screen_width
+        output += format_output("\ntitle", self.title)
+        output += format_output("feed", self.feed)
+        output += format_output("original_mp3", self.mp3)
+        output += format_output("mp3_file", self.mp3_filename)
+        if hasattr(self, "podtrac_url"):
+            output += format_output("podcast url", self.podtrac_url)
 
-        if hasattr(self, 'img'):
-            output += format_output('img', self.img)
-            output += format_output('img_file', self.img_filename)
+        if hasattr(self, "img"):
+            output += format_output("original_img", self.img)
 
-        if hasattr(self, 'img_url'):
-            output += format_output('img url', self.img_url)
+        if hasattr(self, "img_url"):
+            output += format_output("img url", self.img_url)
 
-        if hasattr(self, 'cover'):
-            output += format_output('cover', self.cover)
-            output += format_output('cover_filename', self.cover_filename)
+        if hasattr(self, "cover_url"):
+            output += format_output("cover url", self.cover_url)
 
-        if hasattr(self, 'cover_url'):
-            output += format_output('cover url', self.cover_url)
+        if hasattr(self, "rss_cover_url"):
+            output += format_output("rss_cover url", self.rss_cover_url)
 
-        if hasattr(self, 'rss_cover'):
-            output += format_output('rss_cover', self.rss_cover)
-            output += format_output('rss_cover_filename', self.rss_cover_filename)
+        if hasattr(self, "vk_cover"):
+            output += format_output("vk_cover_filename", self.vk_cover_filename)
 
-        if hasattr(self, 'rss_cover_url'):
-            output += format_output('rss_cover url', self.rss_cover_url)
+        if hasattr(self, "mp4"):
+            output += format_output("mp4", self.mp4)
 
-        if hasattr(self, 'vk_cover'):
-            output += format_output('vk_cover', self.vk_cover)
-            output += format_output('vk_cover_filename', self.vk_cover_filename)
+        if hasattr(self, "yt_id"):
+            output += format_output("youtube id", self.yt_id)
+            output += format_output("youtube url", self.yt_url)
 
-
-        if hasattr(self, 'podtrac_url'):
-            output += format_output('podcast url', self.podtrac_url)
-
-        if hasattr(self, 'mp4'):
-            output += format_output('mp4', self.mp4)
-
-        if hasattr(self, 'yt_id'):
-            output += format_output('youtube id', self.yt_id)
-            output += format_output('youtube url', self.yt_url)
-
-        output += format_output('description', self.description)
-        # output += format_output("youtube body", self.yt_body)
-
-        output += '=' * screen_width
-
-        return output
-
-    @property
-    def site_view(self) -> str:
-
-        output = '=' * screen_width
-        output += '\n'
-        output += 'title\n' + self.title
-        output += '\n'
-        output += '-' * screen_width
-        output += '\n'
-
-        if hasattr(self, 'podtrac_url'):
-            output += 'podcast url\n' + self.podtrac_url
-            output += '\n'
-            output += '-' * screen_width
-            output += '\n'
-
-        if not hasattr(self, 'yt_url'):
-            self.yt_url = ''
-
-        output += 'description\n'
-        output += '-----------\n' + self.site_body
-        output += '=' * screen_width
+        output += "=" * screen_width
 
         return output
 
@@ -197,8 +182,10 @@ class Podcast():
 
         f = HTMLFilter()
         f.feed(self.description)
-        
-        return f.text + '''
+
+        return (
+            f.text.replace(">", "-").replace("<", "-")
+            + """
 
 
         ------------------------------------------------------------
@@ -214,18 +201,13 @@ class Podcast():
         Поддержите проект:
         https://www.patreon.com/linkmeup
         ------------------------------------------------------------
-    '''
+    """
+        )
 
     @property
     def site_body(self) -> str:
 
-        return self.description + f'''
-
-<video>{self.yt_url}</video>
-
-<audio controls>
-  <source src="{self.podtrac_url}" type="audio/mp3">
-</audio>
+        body = """
 
 <blockquote>
 Канал в телеграме: <a href="https://t.me/linkmeup_podcast">t.me/linkmeup_podcast</a>
@@ -238,16 +220,14 @@ class Podcast():
 Скачать все выпуски подкаста вы можете с <a href="https://yadi.sk/d/exFFAsItbePoV">яндекс-диска</a>.
 Добавить <a href="https://linkmeup.ru/rss/podcasts">RSS</a> в подкаст-плеер.
 
-Пообщаться в общем чате в тг: https://t.me/linkmeup_chat 
+Пообщаться в общем чате в тг: https://t.me/linkmeup_chat
 
 Поддержите проект:
 <a href="https://www.patreon.com/linkmeup?ty=h" target="_blank"><img src="https://fs.linkmeup.ru/images/patreon.jpg" align="center" title="Поддержать нас на Patreon" width="300"></a>
 </blockquote>
-'''
+"""
 
-
-def format_output(text: str, value: str) -> str:
-    return f'{text + ":": <20}{value}\n'
+        return self.description + body
 
 
 def main():
@@ -256,89 +236,116 @@ def main():
     logger.init_logging(0)
     log = logging.getLogger(__name__)
 
-    with open(args.description_file, 'r') as f:
+    with open(args.description_file, "r") as f:
         description = f.read()
 
     podcast = Podcast(args.title, description, args.mp3, args.img)
 
-    # Generate podcast cover
-    log.delimiter('=' * screen_width)
-    log.topic('Рисуем обложки')
+    # Generate podcast covers
+    log.delimiter("=" * screen_width)
+    log.topic("Рисуем обложки")
     podcast.create_covers()
-    log.info('  Готово.')
+    log.info("  Готово.")
 
     # Upload files to file-hosting
-    log.delimiter('-' * screen_width)
-    log.topic('Загружаем mp3 на fs')
+    log.delimiter("-" * screen_width)
+    log.topic("Загружаем mp3 на fs")
     podcast.mp3_upload()
-    log.info('\n  Готово.')
+    log.info("\n  Готово.")
 
-    log.delimiter('-' * screen_width)
-    log.topic('Загружаем изображение выпуска на fs')
+    log.delimiter("-" * screen_width)
+    log.topic("Загружаем изображение выпуска на fs")
     podcast.img_upload()
-    log.info('\n  Готово.')
+    log.info("\n  Готово.")
 
-    log.delimiter('-' * screen_width)
-    log.topic('Загружаем обложку выпуска на fs')
+    log.delimiter("-" * screen_width)
+    log.topic("Загружаем обложку выпуска на fs")
     podcast.cover_upload()
-    log.info('\n  Готово.')
+    log.info("\n  Готово.")
 
-    log.delimiter('-' * screen_width)
-    log.topic('Загружаем обложку выпуска для RSS на fs')
+    log.delimiter("-" * screen_width)
+    log.topic("Загружаем обложку выпуска для RSS на fs")
     podcast.rss_cover_upload()
-    log.info('\n  Готово.')
+    log.info("\n  Готово.")
+
+    # Post podcast to site
+    log.delimiter("-" * screen_width)
+    log.topic("Публикуем подкаст на сайте")
+    podcast.publish_to_site()
+    log.info("\n  Готово.")
 
     # Render video by ffmpeg
-    log.delimiter('-' * screen_width)
-    log.topic('Рендерим видео')
-    podcast.render()
-    log.info('  Готово.')
+    if args.need_video:
+        log.delimiter("-" * screen_width)
+        log.topic("Рендерим видео")
+        podcast.render()
+        log.info("  Готово.")
 
-    # Upload video to youtube in private mode, add to playlist
-    log.delimiter('-' * screen_width)
-    log.topic('Загружаем видео на Youtube')
-    podcast.yt_upload()
-    log.info('  Готово.')
+        # Upload video to youtube in private mode, add to playlist
+        log.delimiter("-" * screen_width)
+        log.topic("Загружаем видео на Youtube")
+        podcast.yt_upload()
+        log.info("  Готово.")
 
     log.info(podcast.nice_view)
-    # print(podcast.site_view)
 
-    # TBD. Create post on site
 
 parser = argparse.ArgumentParser(
-    description='Данный скрипт поможет залить файл подкаста, сгенерировать обложку, срендерить и залить видео на ютуб и приготовить текст поста на сайт'
+    description="Данный скрипт поможет залить файл подкаста, сгенерировать обложку, срендерить и залить видео на ютуб и приготовить текст поста на сайт"
 )
 
 parser.add_argument(
-    '-i', '--img',
-    dest='img',
-    action='store',
+    "-i",
+    "--img",
+    dest="img",
+    action="store",
     default=None,
-    help='Файл с изображением подкаста',
+    help="Файл с изображением подкаста",
 )
 parser.add_argument(
-    '-m', '--mp3',
-    dest='mp3',
-    action='store',
+    "-m",
+    "--mp3",
+    dest="mp3",
+    action="store",
     required=True,
-    help='Файл с mp3 подкаста',
+    help="Файл с mp3 подкаста",
 )
 parser.add_argument(
-    '-t','--title',
-    dest='title',
-    action='store',
+    "-t",
+    "--title",
+    dest="title",
+    action="store",
     required=True,
-    help='Название подкаста',
+    help="Название подкаста",
 )
 parser.add_argument(
-    '-d', '--description',
-    dest='description_file',
-    action='store',
-    default='description.html',
-    # required=True,
-    help='Файл с описанием подкаста. По умолчанию: description.html',
+    "-d",
+    "--description",
+    dest="description_file",
+    action="store",
+    default="description.html",
+    help="Файл с описанием подкаста. По умолчанию: description.html",
 )
 
-if __name__ == '__main__':
+parser.add_argument(
+    "--no-video",
+    dest="need_video",
+    action="store_false",
+    default=True,
+    help="Указать, если не нужно рендерить видео и загрузить на youtube",
+)
+
+
+if __name__ == "__main__":
     args = parser.parse_args()
+    print(f"Изображение подкаста: {args.img}")
+    print(f"Файл подкаста: {args.mp3}")
+    print(f"Название: {args.title}")
+    print(f"Файл с описанием: {args.description_file}")
+    print(f"Нужно ли рендерить видео: {args.need_video}")
+    print("=" * screen_width)
+
+    if args.need_video:
+        from yt import upload_video, update_playlist
+
     main()
