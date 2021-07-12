@@ -1,41 +1,21 @@
 #!/usr/bin/env python3
-from html.parser import HTMLParser
+import argparse
+import logging
 import os
 import re
 import shutil
-import argparse
-import decouple
-import logging
-
-from publish_post import publish_post
+from html.parser import HTMLParser
 
 import logger
-from gen_cover import gen_cover, prepare_rss_cover, prepare_vk_cover
-from render_video import render_video
 from fs import copy_file
+from gen_cover import gen_cover, prepare_rss_cover, prepare_vk_cover
+from publish_post import publish_post
+from render_video import render_video
 
 screen_width, _ = shutil.get_terminal_size()
 screen_width -= 1
 
-FS = "fs.linkmeup.ru"
-FS_PATH = decouple.config("FS_PATH")
-
-PODTRAC_BASE = "https://dts.podtrac.com/redirect.mp3"
-
-FEEDS = {
-    "LTE": "lte",
-    "telecom": "telecom",
-    "sysadmins": "sysadmin",
-    "По'уехавшие": "pouekhavshie",
-    "Шоты": "shorts",
-    "IRL": "irl",
-    "Поjncieлки": "ccielki",
-    "Поrhcaлки": "ccielki",
-    "Поallелки": "ccielki",
-    "Поccieлки": "ccielki",
-    "По'училки": "ccielki",
-    "linkmeup": "other",
-}
+from constants import FEEDS, FS, FS_PATH, PODTRAC_BASE
 
 
 class HTMLFilter(HTMLParser):
@@ -56,7 +36,7 @@ def format_output(text: str, value: str) -> str:
 
 
 class Podcast:
-    def __init__(self, title, description, mp3, img=None):
+    def __init__(self, title, description, mp3, img=None, date=None):
         self.title = title
         self.description = description
         self.excerpt = excerpt(self.description)
@@ -69,6 +49,9 @@ class Podcast:
 
         self.mp3 = mp3
         self.mp3_filename = f"{self.filename}.mp3"
+
+        if date:
+            self.date = date
 
         if img:
             self.img = img
@@ -86,7 +69,7 @@ class Podcast:
         return FEEDS[first_word] if FEEDS[first_word] else "other"
 
     def get_number(self) -> str:
-        regexp = r"\S+ № ?(?P<number>\d+)\..*"
+        regexp = r"\S+ *№ ?(?P<number>\d+)\..*"
         result = re.search(regexp, self.title)
         return result.group("number")
 
@@ -129,7 +112,7 @@ class Podcast:
         self.rss_cover_url = f"https://{FS}/{file_path}"
 
     def publish_to_site(self):
-        self.post_url = publish_post(self)
+        self.post_url = publish_post(self, args.announce)
         self.description += f"\n{self.post_url}"
 
     def render(self):
@@ -172,6 +155,9 @@ class Podcast:
         if hasattr(self, "yt_id"):
             output += format_output("youtube id", self.yt_id)
             output += format_output("youtube url", self.yt_url)
+
+        if hasattr(self, "post_url"):
+            output += format_output("youtube url", self.post_url)
 
         output += "=" * screen_width
 
@@ -239,7 +225,7 @@ def main():
     with open(args.description_file, "r") as f:
         description = f.read()
 
-    podcast = Podcast(args.title, description, args.mp3, args.img)
+    podcast = Podcast(args.title, description, args.mp3, args.img, args.announce)
 
     # Generate podcast covers
     log.delimiter("=" * screen_width)
@@ -247,12 +233,7 @@ def main():
     podcast.create_covers()
     log.info("  Готово.")
 
-    # Upload files to file-hosting
-    log.delimiter("-" * screen_width)
-    log.topic("Загружаем mp3 на fs")
-    podcast.mp3_upload()
-    log.info("\n  Готово.")
-
+    # Upload covers to file-hosting
     log.delimiter("-" * screen_width)
     log.topic("Загружаем изображение выпуска на fs")
     podcast.img_upload()
@@ -268,9 +249,17 @@ def main():
     podcast.rss_cover_upload()
     log.info("\n  Готово.")
 
+    if not args.announce:
+
+        # Upload mp3 to file-hosting
+        log.delimiter("-" * screen_width)
+        log.topic("Загружаем mp3 на fs")
+        podcast.mp3_upload()
+        log.info("\n  Готово.")
+
     # Post podcast to site
     log.delimiter("-" * screen_width)
-    log.topic("Публикуем подкаст на сайте")
+    log.topic("Публикуем пост на сайте")
     podcast.publish_to_site()
     log.info("\n  Готово.")
 
@@ -303,12 +292,7 @@ parser.add_argument(
     help="Файл с изображением подкаста",
 )
 parser.add_argument(
-    "-m",
-    "--mp3",
-    dest="mp3",
-    action="store",
-    required=True,
-    help="Файл с mp3 подкаста",
+    "-m", "--mp3", dest="mp3", action="store", help="Файл с mp3 подкаста",
 )
 parser.add_argument(
     "-t",
@@ -328,24 +312,37 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--announce",
+    dest="announce",
+    action="store",
+    help="Указать, если нужно опубликовать анонс. Необходимо указать дату подкаста в формате 20210718T140000",
+)
+
+parser.add_argument(
     "--no-video",
     dest="need_video",
     action="store_false",
     default=True,
-    help="Указать, если не нужно рендерить видео и загрузить на youtube",
+    help="Указать, если не нужно рендерить видео и загружать на youtube",
 )
 
 
 if __name__ == "__main__":
     args = parser.parse_args()
+
+    if args.announce:
+        args.need_video = False
+        if "анонс" not in args.title.lower():
+            args.title = f"Анонс {args.title}"
+
+    if args.need_video:
+        from yt import update_playlist, upload_video
+
     print(f"Изображение подкаста: {args.img}")
     print(f"Файл подкаста: {args.mp3}")
     print(f"Название: {args.title}")
     print(f"Файл с описанием: {args.description_file}")
     print(f"Нужно ли рендерить видео: {args.need_video}")
     print("=" * screen_width)
-
-    if args.need_video:
-        from yt import upload_video, update_playlist
 
     main()

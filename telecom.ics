@@ -1,0 +1,47 @@
+BEGIN:VCALENDAR
+PRODID:-//Microsoft Corporation//Outlook 16.0 MIMEDIR//EN
+VERSION:2.0
+METHOD:PUBLISH
+X-MS-OLK-FORCEINSPECTOROPEN:TRUE
+BEGIN:VTIMEZONE
+TZID:Russian Standard Time
+BEGIN:STANDARD
+DTSTART:16010101T000000
+TZOFFSETFROM:+0300
+TZOFFSETTO:+0300
+END:STANDARD
+END:VTIMEZONE
+BEGIN:VEVENT
+CLASS:PUBLIC
+CREATED:20210615T123955Z
+DESCRIPTION:Подключиться к трансляции:\nlive.linkmeu
+	p.ru\n\nОбсуждение выпуска 
+	и вопросы онлайн:\nздесь https://t.me/linkmeup_chat\nи
+	\nтут https://t.me/linkmeup_sysadm_chat \n\n
+DTEND;TZID="Russian Standard Time":20210718T140000
+DTSTAMP:20201117T151540Z
+DTSTART;TZID="Russian Standard Time":20210718T160000
+LAST-MODIFIED:20210615T123955Z
+LOCATION:online
+PRIORITY:5
+SEQUENCE:0
+SUMMARY;LANGUAGE=ru:telecom №101. Оверлейные сети.
+TRANSP:OPAQUE
+UID:040000008200E00074C5B7101A82E0080000000090CEFA2B0DBDD601000000000000000
+	0100000001C61FC87B345D44087FBD0D8082B13FB
+X-ALT-DESC;FMTTYPE=text/html:<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//E
+	N">\n<HTML>\n<HEAD>\n<META NAME="Generator" CONTENT="MS Exchange Server ve
+	rsion 16.0.10359.20023">\n<TITLE></TITLE>\n</HEAD>\n<BODY>\n<!-- Converted
+	 from text/plain format -->\n\n<P>Подключиться к трансл
+	яции:\n\n<BR><FONT SIZE=2>live.linkmeup.ru</FONT>\n\n<BR>
+	\n</P>\n\n<P>Обсуждение выпуска и вопросы о
+	нлайн:\n\n<BR>здесь <A HREF="https://t.me/linkmeup_chat">https:/
+	/t.me/linkmeup_chat</A>\n\n<BR>и\n\n<BR>тут <A HREF="https://t.me/link
+	meup_sysadm_chat">\n\n</BODY>\n</HTML>
+X-MICROSOFT-CDO-BUSYSTATUS:BUSY
+X-MICROSOFT-CDO-IMPORTANCE:1
+X-MICROSOFT-DISALLOW-COUNTER:FALSE
+X-MS-OLK-AUTOFILLLOCATION:FALSE
+X-MS-OLK-CONFTYPE:0
+END:VEVENT
+END:VCALENDAR

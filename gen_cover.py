@@ -1,6 +1,6 @@
 from PIL import Image, ImageDraw, ImageFont
 
-FONT = "Lato-Bold.ttf"
+from constants import FONT
 
 
 def add_corners(im, rad):
