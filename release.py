@@ -66,7 +66,7 @@ class Podcast:
 
     def get_feed(self) -> str:
         first_word = self.title.split()[0]
-        return FEEDS[first_word] if FEEDS[first_word] else "other"
+        return FEEDS[first_word] if FEEDS.get(first_word) else "other"
 
     def get_number(self) -> str:
         regexp = r"\S+ *№ ?(?P<number>\d+)\..*"
@@ -84,6 +84,7 @@ class Podcast:
         self.vk_cover_filename = self.vk_cover.split("/")[-1]
 
     def mp3_upload(self):
+        print(self.mp3)
         os.chmod(self.mp3, 0o644)
         file_path = f"podcasts/{self.feed}/{self.mp3_filename}"
         full_path = f"{FS_PATH}/{file_path}"
@@ -157,7 +158,7 @@ class Podcast:
             output += format_output("youtube url", self.yt_url)
 
         if hasattr(self, "post_url"):
-            output += format_output("youtube url", self.post_url)
+            output += format_output("post_url", self.post_url)
 
         output += "=" * screen_width
 
@@ -210,6 +211,7 @@ class Podcast:
 
 Поддержите проект:
 <a href="https://www.patreon.com/linkmeup?ty=h" target="_blank"><img src="https://fs.linkmeup.ru/images/patreon.jpg" align="center" title="Поддержать нас на Patreon" width="300"></a>
+<a href="https://sponsr.ru/linkmeup/" target="_blank"><img src="https://fs.linkmeup.ru/images/sponsr.png" align="center" title="Поддержать нас на Sponsr" width="300"></a>
 </blockquote>
 """
 
@@ -262,6 +264,8 @@ def main():
     log.topic("Публикуем пост на сайте")
     podcast.publish_to_site()
     log.info("\n  Готово.")
+
+    log.info(podcast.nice_view)
 
     # Render video by ffmpeg
     if args.need_video:
@@ -332,8 +336,6 @@ if __name__ == "__main__":
 
     if args.announce:
         args.need_video = False
-        if "анонс" not in args.title.lower():
-            args.title = f"Анонс {args.title}"
 
     if args.need_video:
         from yt import update_playlist, upload_video

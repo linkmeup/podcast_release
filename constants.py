@@ -10,6 +10,7 @@ FEEDS = {
     "telecom": "telecom",
     "sysadmins": "sysadmins",
     "По'уехавшие": "pouekhavshie",
+    "pouekhavshie": "pouekhavshie",
     "Шоты": "shorts",
     "IRL": "irl",
     "Поjncieлки": "ccielki",
@@ -25,9 +26,11 @@ PODCAST_CATEGORIES = {
     "lte": 6,
     "sysadmins": 4,
     "telecom": 3,
-    "по'ехавшие": 5,
+    "по'уехавшие": 5,
+    "pouekhavshie": 5,
     "поccieлки": 8,
     "шоты": 7,
+    "shorts": 7,
 }
 
 FONT = "Lato-Bold.ttf"

@@ -44,7 +44,11 @@ def publish_post(podcast, announce=False):
     conn.request("POST", url, payload, headers)
     res = conn.getresponse()
     data = res.read()
-    return json.loads(data.decode("utf-8"))["permalink_template"].replace("\\", "")
+    try:
+        result = json.loads(data.decode("utf-8"))["permalink_template"].replace("\\", "")
+    except Exception as e:
+        result = str(e)
+    return result
 
 
 def prepare_podcast(podcast):
@@ -73,6 +77,8 @@ def prepare_announce(podcast):
 <b>Когда:</b> {date}. <a href="https://fs.linkmeup.ru/calendar/{podcast.feed}.ics">Событие в календаре</a>\n
 """
     )
+    if "анонс" not in podcast.title.lower():
+        podcast.title = f"Анонс {podcast.title}"
     payload = json.dumps(
         {
             "title": podcast.title,
