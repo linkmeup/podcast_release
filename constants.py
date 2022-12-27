@@ -1,9 +1,14 @@
 import decouple
 
-FS = "fs.linkmeup.ru"
-FS_PATH = decouple.config("FS_PATH")
+SITE_SECRET = decouple.config("SITE_SECRET")
 
 PODTRAC_BASE = "https://dts.podtrac.com/redirect.mp3"
+S3_ENDPOINT = "https://s3.linkmeup.ru"
+S3_BUCKET = "linkmeup"
+S3_SECRET = decouple.config('AWS_SECRET')
+
+ICS_DIR = "ics"
+EVENT_TEMPLATE_FILE = f"{ICS_DIR}/event_template.ics"
 
 FEEDS = {
     "LTE": "lte",
@@ -22,7 +27,7 @@ FEEDS = {
 }
 
 PODCAST_CATEGORIES = {
-    "IRL": 9,
+    "irl": 9,
     "lte": 6,
     "sysadmins": 4,
     "telecom": 3,
@@ -33,16 +38,12 @@ PODCAST_CATEGORIES = {
     "shorts": 7,
 }
 
-FONT = "Lato-Bold.ttf"
+FONT = "fonts/Lato-Bold.ttf"
 
-CLIENT_SECRETS_FILE = "client_secrets.json"
-
-SCOPES = [
-    "https://www.googleapis.com/auth/youtube.upload",
-    "https://www.googleapis.com/auth/youtube",
-]
-API_SERVICE_NAME = "youtube"
-API_VERSION = "v3"
+YT_CATEGORY_ID = 28
+YT_TAGS = ["linkmeup", "networking", "technology", "podcast", "подкасты"]
+YT_CLIENT_SECRETS = "client_secrets.json"
+YT_OAUTH_PATH = "oauth.json"
 
 UPLOAD_BODY_TEMPLATE = {
     "snippet": {

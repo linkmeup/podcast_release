@@ -2,17 +2,18 @@ import http.client
 import json
 from datetime import datetime
 
-import decouple
-
-from fs import copy_file
-
-from constants import FS_PATH, PODCAST_CATEGORIES
-
-SECRET = decouple.config("SITE_SECRET")
+from constants import (
+    ICS_DIR,
+    EVENT_TEMPLATE_FILE,
+    PODCAST_CATEGORIES,
+    S3_ENDPOINT,
+    SITE_SECRET,
+)
+from functions.s3 import copy_file
 
 
 def make_event(podcast):
-    with open("event_template.ics") as f:
+    with open(EVENT_TEMPLATE_FILE) as f:
         event_template = f.read()
 
     start_time = podcast.date
@@ -22,19 +23,22 @@ def make_event(podcast):
     end_time = f"{date}T{time}"
     event = event_template.format(start_time, end_time, podcast.title)
 
-    ics = f"{podcast.feed}.ics"
+    ics = f"{ICS_DIR}{podcast.feed}.ics"
     with open(ics, "w") as f:
         f.write(event)
 
     file_path = f"calendar/{ics}"
-    full_path = f"{FS_PATH}/{file_path}"
+    full_path = f"{S3_ENDPOINT}/{file_path}"
 
     copy_file(ics, full_path)
 
 
 def publish_post(podcast, announce=False):
     conn = http.client.HTTPSConnection("linkmeup.ru")
-    headers = {"Authorization": f"Basic {SECRET}", "Content-Type": "application/json"}
+    headers = {
+        "Authorization": f"Basic {SITE_SECRET}",
+        "Content-Type": "application/json",
+    }
 
     if announce:
         payload, url = prepare_announce(podcast)
@@ -45,7 +49,9 @@ def publish_post(podcast, announce=False):
     res = conn.getresponse()
     data = res.read()
     try:
-        result = json.loads(data.decode("utf-8"))["permalink_template"].replace("\\", "")
+        result = json.loads(data.decode("utf-8"))["permalink_template"].replace(
+            "\\", ""
+        )
     except Exception as e:
         result = str(e)
     return result
@@ -74,7 +80,7 @@ def prepare_announce(podcast):
         f"<img src='{podcast.cover_url}'>\n"
         + podcast.description
         + f"""\n
-<b>Когда:</b> {date}. <a href="https://fs.linkmeup.ru/calendar/{podcast.feed}.ics">Событие в календаре</a>\n
+<b>Когда:</b> {date}. <a href="https://s3.linkmeup.ru/calendar/{podcast.feed}.ics">Событие в календаре</a>\n
 """
     )
     if "анонс" not in podcast.title.lower():

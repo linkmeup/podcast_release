@@ -6,16 +6,16 @@ import re
 import shutil
 from html.parser import HTMLParser
 
-import logger
-from fs import copy_file
-from gen_cover import gen_cover, prepare_rss_cover, prepare_vk_cover
-from publish_post import publish_post
-from render_video import render_video
+from functions import logger
+from functions.gen_cover import gen_cover, prepare_rss_cover, prepare_vk_cover
+from functions.publish_post import publish_post
+from functions.render_video import render_video
+from functions.s3 import copy_file
 
 screen_width, _ = shutil.get_terminal_size()
 screen_width -= 1
 
-from constants import FEEDS, FS, FS_PATH, PODTRAC_BASE
+from constants import FEEDS, PODTRAC_BASE, S3_BUCKET, S3_ENDPOINT
 
 
 class HTMLFilter(HTMLParser):
@@ -84,40 +84,31 @@ class Podcast:
         self.vk_cover_filename = self.vk_cover.split("/")[-1]
 
     def mp3_upload(self):
-        print(self.mp3)
-        os.chmod(self.mp3, 0o644)
         file_path = f"podcasts/{self.feed}/{self.mp3_filename}"
-        full_path = f"{FS_PATH}/{file_path}"
-        copy_file(self.mp3, full_path)
-        self.podtrac_url = f"{PODTRAC_BASE}/{FS}/{file_path}"
+        copy_file(self.mp3, file_path)
+        self.podtrac_url = f"{PODTRAC_BASE}/{S3_ENDPOINT}/{S3_BUCKET}/{file_path}"
 
     def img_upload(self):
-        os.chmod(self.img, 0o644)
         file_path = f"images/podcasts/{self.feed}/{self.img_filename}"
-        full_path = f"{FS_PATH}/{file_path}"
-        copy_file(self.img, full_path)
-        self.img_url = f"https://{FS}/{file_path}"
+        copy_file(self.img, file_path)
+        self.img_url = f"{S3_ENDPOINT}/{S3_BUCKET}/{file_path}"
 
     def cover_upload(self):
-        os.chmod(self.cover, 0o644)
         file_path = f"images/podcasts/{self.feed}/{self.cover_filename}"
-        full_path = f"{FS_PATH}/{file_path}"
-        copy_file(self.cover, full_path)
-        self.cover_url = f"https://{FS}/{file_path}"
+        copy_file(self.cover, file_path)
+        self.cover_url = f"{S3_ENDPOINT}/{S3_BUCKET}/{file_path}"
 
     def rss_cover_upload(self):
-        os.chmod(self.rss_cover, 0o644)
         file_path = f"images/podcasts/{self.feed}/{self.rss_cover_filename}"
-        full_path = f"{FS_PATH}/{file_path}"
-        copy_file(self.rss_cover, full_path)
-        self.rss_cover_url = f"https://{FS}/{file_path}"
+        copy_file(self.rss_cover, file_path)
+        self.rss_cover_url = f"{S3_ENDPOINT}/{S3_BUCKET}/{file_path}"
 
     def publish_to_site(self):
         self.post_url = publish_post(self, args.announce)
         self.description += f"\n{self.post_url}"
 
     def render(self):
-        self.mp4 = render_video(self)
+        self.mp4 = render_video(self, args.need_render)
 
     def yt_upload(self):
         self.yt_id = upload_video(self)
@@ -210,8 +201,8 @@ class Podcast:
 Пообщаться в общем чате в тг: https://t.me/linkmeup_chat
 
 Поддержите проект:
-<a href="https://www.patreon.com/linkmeup?ty=h" target="_blank"><img src="https://fs.linkmeup.ru/images/patreon.jpg" align="center" title="Поддержать нас на Patreon" width="300"></a>
-<a href="https://sponsr.ru/linkmeup/" target="_blank"><img src="https://fs.linkmeup.ru/images/sponsr.png" align="center" title="Поддержать нас на Sponsr" width="300"></a>
+<a href="https://www.patreon.com/linkmeup?ty=h" target="_blank"><img src="https://s3.linkmeup.ru/linkmeup/images/patreon.jpg" align="center" title="Поддержать нас на Patreon" width="300"></a>
+<a href="https://sponsr.ru/linkmeup/" target="_blank"><img src="https://s3.linkmeup.ru/linkmeup/images/sponsr.png" align="center" title="Поддержать нас на Sponsr" width="300"></a>
 </blockquote>
 """
 
@@ -237,17 +228,17 @@ def main():
 
     # Upload covers to file-hosting
     log.delimiter("-" * screen_width)
-    log.topic("Загружаем изображение выпуска на fs")
+    log.topic("Загружаем изображение выпуска на s3")
     podcast.img_upload()
     log.info("\n  Готово.")
 
     log.delimiter("-" * screen_width)
-    log.topic("Загружаем обложку выпуска на fs")
+    log.topic("Загружаем обложку выпуска на s3")
     podcast.cover_upload()
     log.info("\n  Готово.")
 
     log.delimiter("-" * screen_width)
-    log.topic("Загружаем обложку выпуска для RSS на fs")
+    log.topic("Загружаем обложку выпуска для RSS на s3")
     podcast.rss_cover_upload()
     log.info("\n  Готово.")
 
@@ -255,7 +246,7 @@ def main():
 
         # Upload mp3 to file-hosting
         log.delimiter("-" * screen_width)
-        log.topic("Загружаем mp3 на fs")
+        log.topic("Загружаем mp3 на s3")
         podcast.mp3_upload()
         log.info("\n  Готово.")
 
@@ -296,7 +287,11 @@ parser.add_argument(
     help="Файл с изображением подкаста",
 )
 parser.add_argument(
-    "-m", "--mp3", dest="mp3", action="store", help="Файл с mp3 подкаста",
+    "-m",
+    "--mp3",
+    dest="mp3",
+    action="store",
+    help="Файл с mp3 подкаста",
 )
 parser.add_argument(
     "-t",
@@ -330,6 +325,14 @@ parser.add_argument(
     help="Указать, если не нужно рендерить видео и загружать на youtube",
 )
 
+parser.add_argument(
+    "--no-render",
+    dest="need_render",
+    action="store_false",
+    default=True,
+    help="Указать, если видео уже отрендерено, но нужно загрузить на youtube",
+)
+
 
 if __name__ == "__main__":
     args = parser.parse_args()
@@ -338,7 +341,7 @@ if __name__ == "__main__":
         args.need_video = False
 
     if args.need_video:
-        from yt import update_playlist, upload_video
+        from functions.yt_upload import update_playlist, upload_video
 
     print(f"Изображение подкаста: {args.img}")
     print(f"Файл подкаста: {args.mp3}")
