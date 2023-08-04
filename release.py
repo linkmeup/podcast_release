@@ -85,22 +85,22 @@ class Podcast:
 
     def mp3_upload(self):
         file_path = f"podcasts/{self.feed}/{self.mp3_filename}"
-        copy_file(self.mp3, file_path)
+        copy_file(self.mp3, file_path, "audio/mpeg")
         self.podtrac_url = f"{PODTRAC_BASE}/{S3_ENDPOINT}/{S3_BUCKET}/{file_path}"
 
     def img_upload(self):
         file_path = f"images/podcasts/{self.feed}/{self.img_filename}"
-        copy_file(self.img, file_path)
+        copy_file(self.img, file_path, "image/png")
         self.img_url = f"{S3_ENDPOINT}/{S3_BUCKET}/{file_path}"
 
     def cover_upload(self):
         file_path = f"images/podcasts/{self.feed}/{self.cover_filename}"
-        copy_file(self.cover, file_path)
+        copy_file(self.cover, file_path, "image/png")
         self.cover_url = f"{S3_ENDPOINT}/{S3_BUCKET}/{file_path}"
 
     def rss_cover_upload(self):
         file_path = f"images/podcasts/{self.feed}/{self.rss_cover_filename}"
-        copy_file(self.rss_cover, file_path)
+        copy_file(self.rss_cover, file_path, "image/png")
         self.rss_cover_url = f"{S3_ENDPOINT}/{S3_BUCKET}/{file_path}"
 
     def publish_to_site(self):
@@ -167,17 +167,19 @@ class Podcast:
 
 
         ------------------------------------------------------------
+        Пишите нам: info@linkmeup.ru
         Канал в телеграме: https://t.me/linkmeup_podcast​
         Подкаст доступен в iTunes, Google Подкастах, Яндекс Музыке, Castbox
         Сообщество в вк: https://vk.com/linkmeup​
         Группа в фб: https://www.facebook.com/linkmeup.sdsm​
-        Группа в linkedin: https://www.linkedin.com/groups/5076111​
         Пообщаться в общих чатах в тг:
         - https://t.me/linkmeup_chat
         - https://t.me/linkmeup_sysadm_chat​
 
         Поддержите проект:
-        https://www.patreon.com/linkmeup
+        - https://www.patreon.com/linkmeup
+        - https://sponsr.ru/linkmeup/
+        - https://boosty.to/linkmeup
         ------------------------------------------------------------
     """
         )
@@ -188,21 +190,24 @@ class Podcast:
         body = """
 
 <blockquote>
-Канал в телеграме: <a href="https://t.me/linkmeup_podcast">t.me/linkmeup_podcast</a>
-Канал на youtube: <a href="https://youtube.com/c/linkmeup-podcast">youtube.com/c/linkmeup-podcast</a>
-Подкаст доступен в <a href="https://itunes.apple.com/ru/podcast/linkmeup.-pervyj-podkast-dla/id1065445951?mt=2">iTunes</a>, <a href="https://podcasts.google.com/feed/aHR0cHM6Ly9saW5rbWV1cC5ydS9yc3MvcG9kY2FzdHM">Google Подкастах</a>, <a href="https://music.yandex.ru/album/7060168">Яндекс Музыке</a>, <a href="https://castbox.fm/channel/linkmeup.-Подкаст-про-IT-и-про-людей-id1173801?country=ru">Castbox</a>
-Сообщество в вк: <a href="https://vk.com/linkmeup">vk.com/linkmeup</a>
-Группа в фб: <a href="https://www.facebook.com/linkmeup.sdsm/">www.facebook.com/linkmeup.sdsm</a>
-Группа в linkedin: <a href="https://www.linkedin.com/groups/5076111​">https://www.linkedin.com/groups/5076111​</a>
+    <h5>Оставайтесь на связи</h5>
+    Пишите нам: <a href="mailto:info@linkmeup.ru" rel="nofollow">info@linkmeup.ru</a><br />
+    Канал в телеграме: <a href="https://t.me/linkmeup_podcast">t.me/linkmeup_podcast</a><br />
+    Канал на youtube: <a href="https://youtube.com/c/linkmeup-podcast">youtube.com/c/linkmeup-podcast</a><br />
+    Подкаст доступен в <a href="https://itunes.apple.com/ru/podcast/linkmeup.-pervyj-podkast-dla/id1065445951?mt=2">iTunes</a>, <a href="https://podcasts.google.com/feed/aHR0cHM6Ly9saW5rbWV1cC5ydS9yc3MvcG9kY2FzdHM">Google Подкастах</a>, <a href="https://music.yandex.ru/album/7060168">Яндекс Музыке</a>, <a href="https://castbox.fm/channel/linkmeup.-Подкаст-про-IT-и-про-людей-id1173801?country=ru">Castbox</a><br />
+    Сообщество в вк: <a href="https://vk.com/linkmeup">vk.com/linkmeup</a><br />
+    Группа в фб: <a href="https://www.facebook.com/linkmeup.sdsm/">www.facebook.com/linkmeup.sdsm</a><br />
+    Добавить <a href="https://linkmeup.ru/rss/podcasts">RSS</a> в подкаст-плеер.<br />
+    Пообщаться в общем чате в тг: <a href="https://t.me/linkmeup_chat">https://t.me/linkmeup_chat</a><br />
+    <br />
 
-Скачать все выпуски подкаста вы можете с <a href="https://yadi.sk/d/exFFAsItbePoV">яндекс-диска</a>.
-Добавить <a href="https://linkmeup.ru/rss/podcasts">RSS</a> в подкаст-плеер.
+    <b>Поддержите проект:</b><br />
 
-Пообщаться в общем чате в тг: https://t.me/linkmeup_chat
+    <a href="https://www.patreon.com/linkmeup?ty=h" target="_blank" rel="noopener"><img title="Поддержать нас на Patreon" src="https://s3.linkmeup.ru/linkmeup/images/patreon.jpg" width="300" align="middle" /></a>
 
-Поддержите проект:
-<a href="https://www.patreon.com/linkmeup?ty=h" target="_blank"><img src="https://s3.linkmeup.ru/linkmeup/images/patreon.jpg" align="center" title="Поддержать нас на Patreon" width="300"></a>
-<a href="https://sponsr.ru/linkmeup/" target="_blank"><img src="https://s3.linkmeup.ru/linkmeup/images/sponsr.png" align="center" title="Поддержать нас на Sponsr" width="300"></a>
+    <a href="https://sponsr.ru/linkmeup/" target="_blank" rel="noopener"><img title="Поддержать нас на Sponsr" src="https://s3.linkmeup.ru/linkmeup/images/sponsr.png" width="300" align="middle" /></a>
+
+    <a href="https://boosty.to/linkmeup" target="_blank" rel="noopener"><img title="Поддержать нас на boosty" src="https://s3.linkmeup.ru/linkmeup/images/boosty.png" width="300" align="middle" /></a>
 </blockquote>
 """
 

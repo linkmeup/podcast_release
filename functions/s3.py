@@ -28,7 +28,7 @@ class ProgressPercentage(object):
             sys.stdout.flush()
 
 
-def copy_file(local_file, remote_file):
+def copy_file(local_file, remote_file, content_type):
     s3 = boto3.resource(
         "s3",
         endpoint_url=S3_ENDPOINT,
@@ -40,6 +40,8 @@ def copy_file(local_file, remote_file):
     GB = 1024**3
     config = TransferConfig(multipart_threshold=5 * GB)
 
+    print(remote_file)
+
     s3.Bucket(S3_BUCKET).upload_file(
-        local_file, remote_file, Config=config, Callback=ProgressPercentage(local_file)
+        local_file, remote_file, Config=config, Callback=ProgressPercentage(local_file), ExtraArgs={'ContentType': content_type}
     )
