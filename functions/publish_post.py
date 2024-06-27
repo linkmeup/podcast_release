@@ -82,7 +82,7 @@ def prepare_announce(podcast):
         f"<img src='{podcast.cover_url}'>\n"
         + podcast.description
         + f"""\n
-<b>Когда:</b> {date}. <a href="https://s3.linkmeup.ru/linkmeup/calendar/{podcast.feed}.ics">Событие в календаре</a>\n
+<b>Когда:</b> {date}. <a href="https://calendar.google.com/calendar/u/0?cid=ZmZkYjFjNzUyNzllZGQzYmFiZjhlODAwNjU3Y2Q0MDM5NDFmOTUxZmQzMzc5NDhhNjZjNmUwMjUwNjdhNDZmMkBncm91cC5jYWxlbmRhci5nb29nbGUuY29t">Ссылка на гугл-календарь</a>. 
 """
     )
     if "анонс" not in podcast.title.lower():
