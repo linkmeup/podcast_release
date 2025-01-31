@@ -56,6 +56,9 @@ def prepare_img(img):
     if width <= height:
         width_new = 480
         height_new = int(480 / width * height)
+        print(height_new)
+        if 550 - height_new < 100:
+            height_new = 550
     else:
         height_new = 550
         width_new = int(550 / height * width)
@@ -63,6 +66,7 @@ def prepare_img(img):
     img = img.resize((width_new, height_new), Image.ANTIALIAS)
     img = img.crop((width_new / 2 - 240, height_new / 2 - 275, width_new / 2 + 240, height_new / 2 + 275))
     img = add_corners(img, 20)
+
 
     return img
 

@@ -36,6 +36,7 @@ PODCAST_CATEGORIES = {
     "поccieлки": 8,
     "шоты": 7,
     "shorts": 7,
+    "other": 7,
 }
 
 FONT = "fonts/Lato-Bold.ttf"

@@ -69,7 +69,11 @@ class Podcast:
         return FEEDS[first_word] if FEEDS.get(first_word) else "other"
 
     def get_number(self) -> str:
-        regexp = r"\S+ *№ ?(?P<number>\d+)\..*"
+        if "Внеплановый" in self.title:
+            return "Внеплановый Новогодний"
+
+        else:
+            regexp = r"\S+ *№ ?(?P<number>\d+)\..*"
         result = re.search(regexp, self.title)
         return result.group("number")
 
@@ -111,8 +115,8 @@ class Podcast:
         self.mp4 = render_video(self, args.need_render)
 
     def yt_upload(self):
-        self.yt_id = upload_video(self)
-        update_playlist(self)
+        # self.yt_id = upload_video(self)
+        # update_playlist(self)
         self.yt_url = f"https://www.youtube.com/watch?v={self.yt_id}"
 
     @property
@@ -225,6 +229,8 @@ def main():
 
     podcast = Podcast(args.title, description, args.mp3, args.img, args.announce)
 
+    log.info(podcast.yt_body)
+
     # Generate podcast covers
     log.delimiter("=" * screen_width)
     log.topic("Рисуем обложки")
@@ -263,18 +269,23 @@ def main():
 
     log.info(podcast.nice_view)
 
+    if not args.need_video:
+        return
+    
     # Render video by ffmpeg
-    if args.need_video:
-        log.delimiter("-" * screen_width)
-        log.topic("Рендерим видео")
-        podcast.render()
-        log.info("  Готово.")
+    log.delimiter("-" * screen_width)
+    log.topic("Рендерим видео")
+    podcast.render()
+    log.info("  Готово.")
 
-        # Upload video to youtube in private mode, add to playlist
-        log.delimiter("-" * screen_width)
-        log.topic("Загружаем видео на Youtube")
-        podcast.yt_upload()
-        log.info("  Готово.")
+    if not args.need_upload:
+        return
+
+    # Upload video to youtube in private mode, add to playlist
+    log.delimiter("-" * screen_width)
+    log.topic("Загружаем видео на Youtube")
+    podcast.yt_upload()
+    log.info("  Готово.")
 
     log.info(podcast.nice_view)
 
@@ -331,6 +342,14 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--no-upload",
+    dest="need_upload",
+    action="store_false",
+    default=True,
+    help="Указать, если нужно рендерить видео, но не нужно загружать на youtube",
+)
+
+parser.add_argument(
     "--no-render",
     dest="need_render",
     action="store_false",
@@ -345,7 +364,7 @@ if __name__ == "__main__":
     if args.announce:
         args.need_video = False
 
-    if args.need_video:
+    if args.need_upload and args.need_video:
         from functions.yt_upload import update_playlist, upload_video
 
     print(f"Изображение подкаста: {args.img}")
