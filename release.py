@@ -15,7 +15,6 @@ from functions.gen_cover import (
     prepare_vk_cover,
 )
 from functions.publish_post import publish_post
-from functions.render_video import render_video
 from functions.s3 import copy_file
 
 screen_width, _ = shutil.get_terminal_size()
