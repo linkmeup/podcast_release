@@ -43,5 +43,9 @@ def copy_file(local_file, remote_file, content_type):
     print(remote_file)
 
     s3.Bucket(S3_BUCKET).upload_file(
-        local_file, remote_file, Config=config, Callback=ProgressPercentage(local_file), ExtraArgs={'ContentType': content_type}
+        local_file,
+        remote_file,
+        Config=config,
+        Callback=ProgressPercentage(local_file),
+        ExtraArgs={"ContentType": content_type},
     )

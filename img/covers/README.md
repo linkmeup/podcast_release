@@ -1,1 +1,0 @@
-Generated covers will be saved here.

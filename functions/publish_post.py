@@ -2,36 +2,12 @@ import http.client
 import json
 from datetime import datetime
 
-from constants import (
-    ICS_DIR,
-    EVENT_TEMPLATE_FILE,
-    PODCAST_CATEGORIES,
-    SITE_SECRET,
-)
-from functions.s3 import copy_file
+from constants import PODCAST_CATEGORIES, SITE_SECRET
 
 
 def make_event(podcast):
-    with open(EVENT_TEMPLATE_FILE) as f:
-        event_template = f.read()
-
-    start_time = podcast.date
-    date, time = start_time.split("T")
-    time = int(time) + 20000
-
-    end_time = f"{date}T{time}"
-    event = event_template.format(start_time, end_time, podcast.title)
-
-    # ics = f"{ICS_DIR}/{podcast.feed}.ics"
-    # with open(ics, "w") as f:
-    #     f.write(event)
-
-    # file_path = f"calendar/{podcast.feed}.ics"
-    # # full_path = f"file_path}"
-    # # print(ics, file_path, full_path)
-
-    # # copy_file(ics, full_path)
-    # copy_file(ics, file_path)
+    # TBD Make google cal event
+    return
 
 
 def publish_post(podcast, announce=False):
@@ -75,14 +51,12 @@ def prepare_podcast(podcast):
 
 
 def prepare_announce(podcast):
-    make_event(podcast)
-    # date = datetime.strptime(podcast.date, "%Y%m%dT%H%M%S").strftime("%Y.%m.%d %H:%M")
     date = datetime.strptime(podcast.date, "%d%m%YT%H%M%S").strftime("%d.%m.%Y %H:%M")
     post_body = (
         f"<img src='{podcast.cover_url}'>\n"
         + podcast.description
         + f"""\n
-<b>Когда:</b> {date}. <a href="https://calendar.google.com/calendar/u/0?cid=ZmZkYjFjNzUyNzllZGQzYmFiZjhlODAwNjU3Y2Q0MDM5NDFmOTUxZmQzMzc5NDhhNjZjNmUwMjUwNjdhNDZmMkBncm91cC5jYWxlbmRhci5nb29nbGUuY29t">Ссылка на гугл-календарь</a>. 
+<b>Когда:</b> {date}. <a href="https://calendar.google.com/calendar/u/0?cid=ZmZkYjFjNzUyNzllZGQzYmFiZjhlODAwNjU3Y2Q0MDM5NDFmOTUxZmQzMzc5NDhhNjZjNmUwMjUwNjdhNDZmMkBncm91cC5jYWxlbmRhci5nb29nbGUuY29t">Ссылка на гугл-календарь</a>.
 """
     )
     if "анонс" not in podcast.title.lower():

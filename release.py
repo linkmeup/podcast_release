@@ -6,16 +6,20 @@ import re
 import shutil
 from html.parser import HTMLParser
 
+from constants import FEEDS, S3_BUCKET, S3_ENDPOINT
 from functions import logger
-from functions.gen_cover import gen_cover, prepare_rss_cover, prepare_vk_cover
+from functions.gen_cover import (
+    gen_cover,
+    prepare_rss_cover,
+    prepare_video_cover,
+    prepare_vk_cover,
+)
 from functions.publish_post import publish_post
 from functions.render_video import render_video
 from functions.s3 import copy_file
 
 screen_width, _ = shutil.get_terminal_size()
 screen_width -= 1
-
-from constants import FEEDS, PODTRAC_BASE, S3_BUCKET, S3_ENDPOINT
 
 
 class HTMLFilter(HTMLParser):
@@ -40,9 +44,10 @@ class Podcast:
         self.title = title
         self.description = description
         self.excerpt = excerpt(self.description)
+        self.feed = self.get_feed()
+
         self.body = self.site_body
 
-        self.feed = self.get_feed()
         self.episode_number = self.get_number()
 
         self.filename = f"{self.feed}-V{self.episode_number}"
@@ -61,6 +66,9 @@ class Podcast:
         if not os.path.exists(self.img):
             raise ValueError(f"Файл {self.img} не существует")
 
+        if self.feed == "donasdoshlo":
+            self.img = gen_cover(self)
+
         img_extension = img.split(".")[-1]
         self.img_filename = f"{self.filename}.{img_extension}"
 
@@ -72,6 +80,8 @@ class Podcast:
         if "Внеплановый" in self.title:
             return "Внеплановый Новогодний"
 
+        if self.feed == "donasdoshlo":
+            regexp = r"\S+ *№ ?(?P<number>s\d+e\d+)\..*"
         else:
             regexp = r"\S+ *№ ?(?P<number>\d+)\..*"
         result = re.search(regexp, self.title)
@@ -81,16 +91,22 @@ class Podcast:
         self.cover = gen_cover(self)
         self.cover_filename = self.cover.split("/")[-1]
 
-        self.rss_cover = prepare_rss_cover(self)
-        self.rss_cover_filename = self.rss_cover.split("/")[-1]
+        if self.feed != "donasdoshlo":
+            self.rss_cover = prepare_rss_cover(self)
+            self.vk_cover = prepare_vk_cover(self)
+        else:
+            self.img = self.cover
+            self.rss_cover = prepare_rss_cover(self)
+            self.vk_cover = prepare_vk_cover(self)
+            self.video_cover = prepare_video_cover(self)
 
-        self.vk_cover = prepare_vk_cover(self)
+        self.rss_cover_filename = self.rss_cover.split("/")[-1]
         self.vk_cover_filename = self.vk_cover.split("/")[-1]
 
     def mp3_upload(self):
         file_path = f"podcasts/{self.feed}/{self.mp3_filename}"
         copy_file(self.mp3, file_path, "audio/mpeg")
-        self.podtrac_url = f"{PODTRAC_BASE}/{S3_ENDPOINT}/{S3_BUCKET}/{file_path}"
+        self.podtrac_url = f"{S3_ENDPOINT}/{S3_BUCKET}/{file_path}"
 
     def img_upload(self):
         file_path = f"images/podcasts/{self.feed}/{self.img_filename}"
@@ -191,7 +207,8 @@ class Podcast:
     @property
     def site_body(self) -> str:
 
-        body = """
+        if self.feed != "donasdoshlo":
+            body = """
 
 <blockquote>
     <h5>Оставайтесь на связи</h5>
@@ -203,6 +220,28 @@ class Podcast:
     Группа в фб: <a href="https://www.facebook.com/linkmeup.sdsm/">www.facebook.com/linkmeup.sdsm</a><br />
     Добавить <a href="https://linkmeup.ru/rss/podcasts">RSS</a> в подкаст-плеер.<br />
     Пообщаться в общем чате в тг: <a href="https://t.me/linkmeup_chat">https://t.me/linkmeup_chat</a><br />
+    <br />
+
+    <b>Поддержите проект:</b><br />
+
+    <a href="https://www.patreon.com/linkmeup?ty=h" target="_blank" rel="noopener"><img title="Поддержать нас на Patreon" src="https://s3.linkmeup.ru/linkmeup/images/patreon.jpg" width="300" align="middle" /></a>
+
+    <a href="https://sponsr.ru/linkmeup/" target="_blank" rel="noopener"><img title="Поддержать нас на Sponsr" src="https://s3.linkmeup.ru/linkmeup/images/sponsr.png" width="300" align="middle" /></a>
+
+    <a href="https://boosty.to/linkmeup" target="_blank" rel="noopener"><img title="Поддержать нас на boosty" src="https://s3.linkmeup.ru/linkmeup/images/boosty.png" width="300" align="middle" /></a>
+</blockquote>
+"""
+
+        else:
+            body = """
+
+<blockquote>
+    <h5>Оставайтесь на связи</h5>
+    Кто мы такие: <a href="https://linkmeup.ru/about/">"https://linkmeup.ru/about/</a><br/>
+    Пишите нам: <a href="mailto:info@linkmeup.ru" rel="nofollow">info@linkmeup.ru</a><br/>
+    Канал в телеграме: <a href="https://t.me/donasdoshlo">https://t.me/donasdoshlo</a>. Приходите обсуждать и предлагать.<br/>
+    Плейлист подкаста на <a href="https://www.youtube.com/playlist?list=PLHN9m7XN8U8Enp72zrhlYd3o0pcifFpox">Youtube</a><br/>
+
     <br />
 
     <b>Поддержите проект:</b><br />
@@ -228,6 +267,7 @@ def main():
         description = f.read()
 
     podcast = Podcast(args.title, description, args.mp3, args.img, args.announce)
+    print(podcast.feed)
 
     log.info(podcast.yt_body)
 
@@ -237,6 +277,7 @@ def main():
     podcast.create_covers()
     log.info("  Готово.")
 
+    # return #!!!
     # Upload covers to file-hosting
     log.delimiter("-" * screen_width)
     log.topic("Загружаем изображение выпуска на s3")
@@ -266,26 +307,6 @@ def main():
     log.topic("Публикуем пост на сайте")
     podcast.publish_to_site()
     log.info("\n  Готово.")
-
-    log.info(podcast.nice_view)
-
-    if not args.need_video:
-        return
-    
-    # Render video by ffmpeg
-    log.delimiter("-" * screen_width)
-    log.topic("Рендерим видео")
-    podcast.render()
-    log.info("  Готово.")
-
-    if not args.need_upload:
-        return
-
-    # Upload video to youtube in private mode, add to playlist
-    log.delimiter("-" * screen_width)
-    log.topic("Загружаем видео на Youtube")
-    podcast.yt_upload()
-    log.info("  Готово.")
 
     log.info(podcast.nice_view)
 
@@ -333,45 +354,13 @@ parser.add_argument(
     help="Указать, если нужно опубликовать анонс. Необходимо указать дату подкаста в формате 20210718T140000",
 )
 
-parser.add_argument(
-    "--no-video",
-    dest="need_video",
-    action="store_false",
-    default=True,
-    help="Указать, если не нужно рендерить видео и загружать на youtube",
-)
-
-parser.add_argument(
-    "--no-upload",
-    dest="need_upload",
-    action="store_false",
-    default=True,
-    help="Указать, если нужно рендерить видео, но не нужно загружать на youtube",
-)
-
-parser.add_argument(
-    "--no-render",
-    dest="need_render",
-    action="store_false",
-    default=True,
-    help="Указать, если видео уже отрендерено, но нужно загрузить на youtube",
-)
-
-
 if __name__ == "__main__":
     args = parser.parse_args()
-
-    if args.announce:
-        args.need_video = False
-
-    if args.need_upload and args.need_video:
-        from functions.yt_upload import update_playlist, upload_video
 
     print(f"Изображение подкаста: {args.img}")
     print(f"Файл подкаста: {args.mp3}")
     print(f"Название: {args.title}")
     print(f"Файл с описанием: {args.description_file}")
-    print(f"Нужно ли рендерить видео: {args.need_video}")
     print("=" * screen_width)
 
     main()
